@@ -25,12 +25,19 @@ A faithful recreation of the classic Windows 3.1 Minesweeper game built in Go us
 
 ## Installation
 
-### Prerequisites
+### Option 1: Download Pre-built Binary (Recommended)
 
-- Go 1.19 or later
-- Git
+1. Go to [Releases](https://github.com/slopsauce/go-minesweeper/releases)
+2. Download the appropriate binary for your platform:
+   - **Windows**: `minesweeper-windows-amd64.exe`
+   - **macOS (Intel)**: `minesweeper-macos-amd64`
+   - **macOS (Apple Silicon)**: `minesweeper-macos-arm64`
+   - **Linux**: `minesweeper-linux-amd64`
+3. Run the executable directly - no installation required!
 
-### Clone and Run
+### Option 2: Build from Source
+
+**Prerequisites**: Go 1.21 or later, Git
 
 ```bash
 git clone https://github.com/slopsauce/go-minesweeper.git
@@ -38,8 +45,7 @@ cd go-minesweeper
 go run main.go
 ```
 
-### Build Executable
-
+**Build executable:**
 ```bash
 go build -o minesweeper main.go
 ./minesweeper

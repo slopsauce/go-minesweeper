@@ -1,0 +1,90 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write  # Required for creating releases
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+    
+    - name: Set up Go
+      uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+      with:
+        go-version: '1.21'
+        check-latest: true
+    
+    - name: Verify dependencies
+      run: go mod verify
+    
+    - name: Build for Windows (amd64)
+      env:
+        GOOS: windows
+        GOARCH: amd64
+        CGO_ENABLED: 0
+      run: go build -v -ldflags="-s -w" -o minesweeper-windows-amd64.exe .
+    
+    - name: Build for macOS (Intel)
+      env:
+        GOOS: darwin
+        GOARCH: amd64
+        CGO_ENABLED: 0
+      run: go build -v -ldflags="-s -w" -o minesweeper-macos-amd64 .
+    
+    - name: Build for macOS (Apple Silicon)
+      env:
+        GOOS: darwin
+        GOARCH: arm64
+        CGO_ENABLED: 0
+      run: go build -v -ldflags="-s -w" -o minesweeper-macos-arm64 .
+    
+    - name: Build for Linux (amd64)
+      env:
+        GOOS: linux
+        GOARCH: amd64
+        CGO_ENABLED: 0
+      run: go build -v -ldflags="-s -w" -o minesweeper-linux-amd64 .
+    
+    - name: Create Release with GitHub CLI
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        tag: ${{ github.ref_name }}
+      run: |
+        gh release create "$tag" \
+          --repo="$GITHUB_REPOSITORY" \
+          --title="Go Minesweeper ${tag}" \
+          --notes="## Go Minesweeper ${tag}
+        
+        Authentic Windows 3.1 Minesweeper recreation built in Go with Ebiten.
+        
+        ### Download & Play
+        - **Windows**: \`minesweeper-windows-amd64.exe\`
+        - **macOS (Intel)**: \`minesweeper-macos-amd64\` 
+        - **macOS (Apple Silicon)**: \`minesweeper-macos-arm64\`
+        - **Linux**: \`minesweeper-linux-amd64\`
+        
+        ### Controls
+        - **Left Click**: Reveal cell
+        - **Right Click**: Flag/unflag cell
+        - **Smiley Face**: Reset game
+        
+        ### Features
+        - Authentic Windows 3.1 graphics and feel
+        - 16x16 grid with 40 mines (Expert difficulty)
+        - First click is always safe
+        - Timer and mine counter with 999-second cap
+        - Win/lose detection with proper smiley face states
+        - Professional Go code following best practices
+        
+        🤖 Generated with [Claude Code](https://claude.ai/code)" \
+          minesweeper-windows-amd64.exe \
+          minesweeper-macos-amd64 \
+          minesweeper-macos-arm64 \
+          minesweeper-linux-amd64
