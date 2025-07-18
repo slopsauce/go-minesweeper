@@ -49,6 +49,9 @@ bin/
 .env.local
 .env.*.local
 
+# Claude Code settings (should not be committed)
+.claude/
+
 # Coverage reports
 coverage.txt
 coverage.html
