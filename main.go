@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"image"
 	"image/color"
 	"log"
 	"math/rand"
@@ -14,14 +15,44 @@ import (
 	"golang.org/x/image/font/basicfont"
 )
 
+// Game constants
 const (
-	CELL_SIZE    = 16
-	BOARD_WIDTH  = 16
-	BOARD_HEIGHT = 16
-	MINE_COUNT   = 40
-	WINDOW_WIDTH = BOARD_WIDTH*CELL_SIZE + 20
+	CELL_SIZE     = 16
+	BOARD_WIDTH   = 16
+	BOARD_HEIGHT  = 16
+	MINE_COUNT    = 40
+	WINDOW_WIDTH  = BOARD_WIDTH*CELL_SIZE + 20
 	WINDOW_HEIGHT = BOARD_HEIGHT*CELL_SIZE + 80
 )
+
+// UI layout constants
+const (
+	BOARD_OFFSET_X = 13
+	BOARD_OFFSET_Y = 58
+	SMILEY_SIZE    = 24
+)
+
+// Color constants
+var (
+	ColorGray     = color.RGBA{192, 192, 192, 255}
+	ColorWhite    = color.RGBA{255, 255, 255, 255}
+	ColorDarkGray = color.RGBA{128, 128, 128, 255}
+	ColorBlack    = color.RGBA{0, 0, 0, 255}
+	ColorRed      = color.RGBA{255, 0, 0, 255}
+	ColorYellow   = color.RGBA{255, 255, 0, 255}
+)
+
+// Number colors for mine counts
+var NumberColors = []color.RGBA{
+	{0, 0, 255, 255},     // 1 - blue
+	{0, 128, 0, 255},     // 2 - green
+	{255, 0, 0, 255},     // 3 - red
+	{0, 0, 128, 255},     // 4 - dark blue
+	{128, 0, 0, 255},     // 5 - maroon
+	{0, 128, 128, 255},   // 6 - teal
+	{0, 0, 0, 255},       // 7 - black
+	{128, 128, 128, 255}, // 8 - gray
+}
 
 type CellState int
 
@@ -32,8 +63,8 @@ const (
 )
 
 type Cell struct {
-	IsMine     bool
-	State      CellState
+	IsMine        bool
+	State         CellState
 	AdjacentMines int
 }
 
@@ -46,20 +77,22 @@ const (
 )
 
 type Game struct {
-	board     [][]Cell
-	gameState GameState
-	startTime time.Time
-	gameTime  int
-	minesLeft int
+	board      [][]Cell
+	gameState  GameState
+	startTime  time.Time
+	gameTime   int
+	minesLeft  int
 	firstClick bool
+	rng        *rand.Rand
 }
 
 func NewGame() *Game {
 	game := &Game{
-		board:     make([][]Cell, BOARD_HEIGHT),
-		gameState: PLAYING,
-		minesLeft: MINE_COUNT,
+		board:      make([][]Cell, BOARD_HEIGHT),
+		gameState:  PLAYING,
+		minesLeft:  MINE_COUNT,
 		firstClick: true,
+		rng:        rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 	
 	for i := range game.board {
@@ -69,20 +102,28 @@ func NewGame() *Game {
 	return game
 }
 
+// Fisher-Yates shuffle algorithm for efficient mine placement
 func (g *Game) placeMines(avoidX, avoidY int) {
-	rand.Seed(time.Now().UnixNano())
-	minesPlaced := 0
-	
-	for minesPlaced < MINE_COUNT {
-		x := rand.Intn(BOARD_WIDTH)
-		y := rand.Intn(BOARD_HEIGHT)
-		
-		if !g.board[y][x].IsMine && !(x == avoidX && y == avoidY) {
-			g.board[y][x].IsMine = true
-			minesPlaced++
+	// Create list of all valid positions
+	positions := make([]image.Point, 0, BOARD_WIDTH*BOARD_HEIGHT-1)
+	for y := 0; y < BOARD_HEIGHT; y++ {
+		for x := 0; x < BOARD_WIDTH; x++ {
+			if x != avoidX || y != avoidY {
+				positions = append(positions, image.Point{x, y})
+			}
 		}
 	}
 	
+	// Fisher-Yates shuffle and pick first MINE_COUNT positions
+	for i := 0; i < MINE_COUNT && i < len(positions); i++ {
+		j := g.rng.Intn(len(positions)-i) + i
+		positions[i], positions[j] = positions[j], positions[i]
+		
+		pos := positions[i]
+		g.board[pos.Y][pos.X].IsMine = true
+	}
+	
+	// Calculate adjacent mine counts
 	for y := 0; y < BOARD_HEIGHT; y++ {
 		for x := 0; x < BOARD_WIDTH; x++ {
 			if !g.board[y][x].IsMine {
@@ -100,7 +141,7 @@ func (g *Game) countAdjacentMines(x, y int) int {
 				continue
 			}
 			nx, ny := x+dx, y+dy
-			if nx >= 0 && nx < BOARD_WIDTH && ny >= 0 && ny < BOARD_HEIGHT && g.board[ny][nx].IsMine {
+			if g.isValidPosition(nx, ny) && g.board[ny][nx].IsMine {
 				count++
 			}
 		}
@@ -108,8 +149,12 @@ func (g *Game) countAdjacentMines(x, y int) int {
 	return count
 }
 
+func (g *Game) isValidPosition(x, y int) bool {
+	return x >= 0 && x < BOARD_WIDTH && y >= 0 && y < BOARD_HEIGHT
+}
+
 func (g *Game) revealCell(x, y int) {
-	if x < 0 || x >= BOARD_WIDTH || y < 0 || y >= BOARD_HEIGHT {
+	if !g.isValidPosition(x, y) {
 		return
 	}
 	
@@ -133,6 +178,7 @@ func (g *Game) revealCell(x, y int) {
 		return
 	}
 	
+	// Flood fill for empty cells
 	if cell.AdjacentMines == 0 {
 		for dy := -1; dy <= 1; dy++ {
 			for dx := -1; dx <= 1; dx++ {
@@ -145,7 +191,7 @@ func (g *Game) revealCell(x, y int) {
 }
 
 func (g *Game) toggleFlag(x, y int) {
-	if x < 0 || x >= BOARD_WIDTH || y < 0 || y >= BOARD_HEIGHT {
+	if !g.isValidPosition(x, y) {
 		return
 	}
 	
@@ -176,34 +222,53 @@ func (g *Game) checkWin() {
 }
 
 func (g *Game) resetGame() {
-	g.board = make([][]Cell, BOARD_HEIGHT)
-	for i := range g.board {
-		g.board[i] = make([]Cell, BOARD_WIDTH)
+	// Reset board
+	for y := 0; y < BOARD_HEIGHT; y++ {
+		for x := 0; x < BOARD_WIDTH; x++ {
+			g.board[y][x] = Cell{}
+		}
 	}
+	
 	g.gameState = PLAYING
 	g.minesLeft = MINE_COUNT
 	g.firstClick = true
 	g.gameTime = 0
 }
 
+func (g *Game) screenToBoard(screenX, screenY int) (int, int) {
+	boardX := (screenX - BOARD_OFFSET_X) / CELL_SIZE
+	boardY := (screenY - BOARD_OFFSET_Y) / CELL_SIZE
+	return boardX, boardY
+}
+
+func (g *Game) isClickOnSmiley(x, y int) bool {
+	smileyX := WINDOW_WIDTH/2 - SMILEY_SIZE/2
+	smileyY := 16
+	return x >= smileyX && x <= smileyX+SMILEY_SIZE && 
+	       y >= smileyY && y <= smileyY+SMILEY_SIZE
+}
+
 func (g *Game) Update() error {
+	// Update timer
 	if g.gameState == PLAYING && !g.firstClick {
 		g.gameTime = int(time.Since(g.startTime).Seconds())
+		if g.gameTime > 999 {
+			g.gameTime = 999 // Cap at 999 like original
+		}
 	}
 	
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		x, y := ebiten.CursorPosition()
 		
-		// Check if clicking on smiley face button
-		if x >= WINDOW_WIDTH/2-12 && x <= WINDOW_WIDTH/2+12 && y >= 16 && y <= 40 {
+		// Check smiley face click
+		if g.isClickOnSmiley(x, y) {
 			g.resetGame()
 			return nil
 		}
 		
-		boardX := (x - 13) / CELL_SIZE
-		boardY := (y - 58) / CELL_SIZE
-		
-		if boardX >= 0 && boardX < BOARD_WIDTH && boardY >= 0 && boardY < BOARD_HEIGHT {
+		// Check board click
+		boardX, boardY := g.screenToBoard(x, y)
+		if g.isValidPosition(boardX, boardY) {
 			if g.firstClick {
 				g.placeMines(boardX, boardY)
 				g.startTime = time.Now()
@@ -215,10 +280,8 @@ func (g *Game) Update() error {
 	
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonRight) {
 		x, y := ebiten.CursorPosition()
-		boardX := (x - 13) / CELL_SIZE
-		boardY := (y - 58) / CELL_SIZE
-		
-		if boardX >= 0 && boardX < BOARD_WIDTH && boardY >= 0 && boardY < BOARD_HEIGHT {
+		boardX, boardY := g.screenToBoard(x, y)
+		if g.isValidPosition(boardX, boardY) {
 			g.toggleFlag(boardX, boardY)
 		}
 	}
@@ -227,17 +290,13 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	screen.Fill(color.RGBA{192, 192, 192, 255})
-	
+	screen.Fill(ColorGray)
 	g.drawHeader(screen)
 	g.drawBoard(screen)
 }
 
 func (g *Game) drawHeader(screen *ebiten.Image) {
-	headerColor := color.RGBA{192, 192, 192, 255}
-	screen.Fill(headerColor)
-	
-	// Main header panel with 3D effect
+	// Main header panel
 	g.draw3DPanel(screen, 10, 10, float32(WINDOW_WIDTH-20), 40, true)
 	
 	// Mine counter panel
@@ -245,14 +304,14 @@ func (g *Game) drawHeader(screen *ebiten.Image) {
 	g.drawLEDDisplay(screen, 18, 18, fmt.Sprintf("%03d", g.minesLeft))
 	
 	// Timer panel
-	g.draw3DPanel(screen, float32(WINDOW_WIDTH-56), 16, 40, 28, false)
-	g.drawLEDDisplay(screen, float32(WINDOW_WIDTH-54), 18, fmt.Sprintf("%03d", g.gameTime))
+	timerX := float32(WINDOW_WIDTH - 56)
+	g.draw3DPanel(screen, timerX, 16, 40, 28, false)
+	g.drawLEDDisplay(screen, timerX+2, 18, fmt.Sprintf("%03d", g.gameTime))
 	
 	// Smiley face button
-	smileyX := float32(WINDOW_WIDTH/2 - 12)
+	smileyX := float32(WINDOW_WIDTH/2 - SMILEY_SIZE/2)
 	smileyY := float32(16)
-	
-	g.draw3DPanel(screen, smileyX, smileyY, 24, 24, true)
+	g.draw3DPanel(screen, smileyX, smileyY, SMILEY_SIZE, SMILEY_SIZE, true)
 	g.drawSmileyFace(screen, smileyX+2, smileyY+2)
 	
 	// Board panel
@@ -261,76 +320,77 @@ func (g *Game) drawHeader(screen *ebiten.Image) {
 
 func (g *Game) draw3DPanel(screen *ebiten.Image, x, y, width, height float32, raised bool) {
 	// Background
-	vector.DrawFilledRect(screen, x, y, width, height, color.RGBA{192, 192, 192, 255}, false)
+	vector.DrawFilledRect(screen, x, y, width, height, ColorGray, false)
 	
 	if raised {
 		// Raised effect (buttons)
-		vector.DrawFilledRect(screen, x, y, width-1, height-1, color.RGBA{255, 255, 255, 255}, false)
-		vector.DrawFilledRect(screen, x+1, y+1, width-2, height-2, color.RGBA{192, 192, 192, 255}, false)
-		vector.DrawFilledRect(screen, x+width-1, y, 1, height, color.RGBA{128, 128, 128, 255}, false)
-		vector.DrawFilledRect(screen, x, y+height-1, width, 1, color.RGBA{128, 128, 128, 255}, false)
+		vector.DrawFilledRect(screen, x, y, width-1, height-1, ColorWhite, false)
+		vector.DrawFilledRect(screen, x+1, y+1, width-2, height-2, ColorGray, false)
+		vector.DrawFilledRect(screen, x+width-1, y, 1, height, ColorDarkGray, false)
+		vector.DrawFilledRect(screen, x, y+height-1, width, 1, ColorDarkGray, false)
 	} else {
 		// Sunken effect (displays)
-		vector.DrawFilledRect(screen, x, y, width, height, color.RGBA{128, 128, 128, 255}, false)
-		vector.DrawFilledRect(screen, x+1, y+1, width-2, height-2, color.RGBA{192, 192, 192, 255}, false)
-		vector.DrawFilledRect(screen, x+width-1, y+1, 1, height-2, color.RGBA{255, 255, 255, 255}, false)
-		vector.DrawFilledRect(screen, x+1, y+height-1, width-2, 1, color.RGBA{255, 255, 255, 255}, false)
+		vector.DrawFilledRect(screen, x, y, width, height, ColorDarkGray, false)
+		vector.DrawFilledRect(screen, x+1, y+1, width-2, height-2, ColorGray, false)
+		vector.DrawFilledRect(screen, x+width-1, y+1, 1, height-2, ColorWhite, false)
+		vector.DrawFilledRect(screen, x+1, y+height-1, width-2, 1, ColorWhite, false)
 	}
 }
 
 func (g *Game) drawLEDDisplay(screen *ebiten.Image, x, y float32, displayText string) {
 	// Black background for LED display
-	vector.DrawFilledRect(screen, x, y, 36, 24, color.RGBA{0, 0, 0, 255}, false)
+	vector.DrawFilledRect(screen, x, y, 36, 24, ColorBlack, false)
 	
 	// LED-style text in red
 	bounds := text.BoundString(basicfont.Face7x13, displayText)
 	textX := int(x) + (36-bounds.Dx())/2
 	textY := int(y) + (24+bounds.Dy())/2 - 2
 	
-	text.Draw(screen, displayText, basicfont.Face7x13, textX, textY, color.RGBA{255, 0, 0, 255})
+	text.Draw(screen, displayText, basicfont.Face7x13, textX, textY, ColorRed)
 }
 
 func (g *Game) drawSmileyFace(screen *ebiten.Image, x, y float32) {
 	// Yellow circular face with black outline
-	vector.DrawFilledCircle(screen, x+10, y+10, 9, color.RGBA{255, 255, 0, 255}, false)
-	vector.StrokeCircle(screen, x+10, y+10, 9, 1, color.RGBA{0, 0, 0, 255}, false)
+	vector.DrawFilledCircle(screen, x+10, y+10, 9, ColorYellow, false)
+	vector.StrokeCircle(screen, x+10, y+10, 9, 1, ColorBlack, false)
 	
 	if g.gameState == LOST {
-		// Dead face - X eyes
-		vector.DrawFilledRect(screen, x+6, y+6, 1, 1, color.RGBA{0, 0, 0, 255}, false)
-		vector.DrawFilledRect(screen, x+7, y+7, 1, 1, color.RGBA{0, 0, 0, 255}, false)
-		vector.DrawFilledRect(screen, x+8, y+8, 1, 1, color.RGBA{0, 0, 0, 255}, false)
-		vector.DrawFilledRect(screen, x+8, y+6, 1, 1, color.RGBA{0, 0, 0, 255}, false)
-		vector.DrawFilledRect(screen, x+7, y+7, 1, 1, color.RGBA{0, 0, 0, 255}, false)
-		vector.DrawFilledRect(screen, x+6, y+8, 1, 1, color.RGBA{0, 0, 0, 255}, false)
-		
-		vector.DrawFilledRect(screen, x+12, y+6, 1, 1, color.RGBA{0, 0, 0, 255}, false)
-		vector.DrawFilledRect(screen, x+13, y+7, 1, 1, color.RGBA{0, 0, 0, 255}, false)
-		vector.DrawFilledRect(screen, x+14, y+8, 1, 1, color.RGBA{0, 0, 0, 255}, false)
-		vector.DrawFilledRect(screen, x+14, y+6, 1, 1, color.RGBA{0, 0, 0, 255}, false)
-		vector.DrawFilledRect(screen, x+13, y+7, 1, 1, color.RGBA{0, 0, 0, 255}, false)
-		vector.DrawFilledRect(screen, x+12, y+8, 1, 1, color.RGBA{0, 0, 0, 255}, false)
-		
-		// O mouth
-		vector.StrokeCircle(screen, x+10, y+13, 2, 1, color.RGBA{0, 0, 0, 255}, false)
+		// Dead face - X eyes and O mouth
+		g.drawXEyes(screen, x, y)
+		vector.StrokeCircle(screen, x+10, y+13, 2, 1, ColorBlack, false)
 	} else if g.gameState == WON {
-		// Sunglasses
-		vector.DrawFilledRect(screen, x+5, y+6, 10, 3, color.RGBA{0, 0, 0, 255}, false)
-		vector.DrawFilledRect(screen, x+6, y+7, 8, 1, color.RGBA{255, 255, 0, 255}, false)
-		
+		// Happy face with sunglasses
+		vector.DrawFilledRect(screen, x+5, y+6, 10, 3, ColorBlack, false)
+		vector.DrawFilledRect(screen, x+6, y+7, 8, 1, ColorYellow, false)
 		// Big smile
-		vector.DrawFilledRect(screen, x+7, y+12, 6, 1, color.RGBA{0, 0, 0, 255}, false)
-		vector.DrawFilledRect(screen, x+8, y+13, 4, 1, color.RGBA{0, 0, 0, 255}, false)
-		vector.DrawFilledRect(screen, x+9, y+14, 2, 1, color.RGBA{0, 0, 0, 255}, false)
+		vector.DrawFilledRect(screen, x+7, y+12, 6, 1, ColorBlack, false)
+		vector.DrawFilledRect(screen, x+8, y+13, 4, 1, ColorBlack, false)
+		vector.DrawFilledRect(screen, x+9, y+14, 2, 1, ColorBlack, false)
 	} else {
-		// Normal eyes - black dots
-		vector.DrawFilledRect(screen, x+7, y+7, 1, 1, color.RGBA{0, 0, 0, 255}, false)
-		vector.DrawFilledRect(screen, x+13, y+7, 1, 1, color.RGBA{0, 0, 0, 255}, false)
-		
-		// Normal smile
-		vector.DrawFilledRect(screen, x+8, y+12, 4, 1, color.RGBA{0, 0, 0, 255}, false)
-		vector.DrawFilledRect(screen, x+9, y+13, 2, 1, color.RGBA{0, 0, 0, 255}, false)
+		// Normal eyes and smile
+		vector.DrawFilledRect(screen, x+7, y+7, 1, 1, ColorBlack, false)
+		vector.DrawFilledRect(screen, x+13, y+7, 1, 1, ColorBlack, false)
+		vector.DrawFilledRect(screen, x+8, y+12, 4, 1, ColorBlack, false)
+		vector.DrawFilledRect(screen, x+9, y+13, 2, 1, ColorBlack, false)
 	}
+}
+
+func (g *Game) drawXEyes(screen *ebiten.Image, x, y float32) {
+	// Left X eye
+	vector.DrawFilledRect(screen, x+6, y+6, 1, 1, ColorBlack, false)
+	vector.DrawFilledRect(screen, x+7, y+7, 1, 1, ColorBlack, false)
+	vector.DrawFilledRect(screen, x+8, y+8, 1, 1, ColorBlack, false)
+	vector.DrawFilledRect(screen, x+8, y+6, 1, 1, ColorBlack, false)
+	vector.DrawFilledRect(screen, x+7, y+7, 1, 1, ColorBlack, false)
+	vector.DrawFilledRect(screen, x+6, y+8, 1, 1, ColorBlack, false)
+	
+	// Right X eye
+	vector.DrawFilledRect(screen, x+12, y+6, 1, 1, ColorBlack, false)
+	vector.DrawFilledRect(screen, x+13, y+7, 1, 1, ColorBlack, false)
+	vector.DrawFilledRect(screen, x+14, y+8, 1, 1, ColorBlack, false)
+	vector.DrawFilledRect(screen, x+14, y+6, 1, 1, ColorBlack, false)
+	vector.DrawFilledRect(screen, x+13, y+7, 1, 1, ColorBlack, false)
+	vector.DrawFilledRect(screen, x+12, y+8, 1, 1, ColorBlack, false)
 }
 
 func (g *Game) drawBoard(screen *ebiten.Image) {
@@ -343,35 +403,35 @@ func (g *Game) drawBoard(screen *ebiten.Image) {
 
 func (g *Game) drawCell(screen *ebiten.Image, x, y int) {
 	cell := &g.board[y][x]
-	screenX := float32(x*CELL_SIZE + 13)
-	screenY := float32(y*CELL_SIZE + 58)
+	screenX := float32(x*CELL_SIZE + BOARD_OFFSET_X)
+	screenY := float32(y*CELL_SIZE + BOARD_OFFSET_Y)
 	
 	if cell.State == HIDDEN {
-		// Hidden cell - raised 3D effect
-		vector.DrawFilledRect(screen, screenX, screenY, CELL_SIZE, CELL_SIZE, color.RGBA{192, 192, 192, 255}, false)
-		vector.DrawFilledRect(screen, screenX, screenY, CELL_SIZE-1, CELL_SIZE-1, color.RGBA{255, 255, 255, 255}, false)
-		vector.DrawFilledRect(screen, screenX+1, screenY+1, CELL_SIZE-2, CELL_SIZE-2, color.RGBA{192, 192, 192, 255}, false)
-		vector.DrawFilledRect(screen, screenX+CELL_SIZE-1, screenY, 1, CELL_SIZE, color.RGBA{128, 128, 128, 255}, false)
-		vector.DrawFilledRect(screen, screenX, screenY+CELL_SIZE-1, CELL_SIZE, 1, color.RGBA{128, 128, 128, 255}, false)
+		g.drawRaisedCell(screen, screenX, screenY)
 	} else if cell.State == REVEALED {
-		// Revealed cell - flat with border
-		vector.DrawFilledRect(screen, screenX, screenY, CELL_SIZE, CELL_SIZE, color.RGBA{128, 128, 128, 255}, false)
-		vector.DrawFilledRect(screen, screenX+1, screenY+1, CELL_SIZE-2, CELL_SIZE-2, color.RGBA{192, 192, 192, 255}, false)
-		
-		if cell.IsMine {
-			g.drawMine(screen, screenX, screenY)
-		} else if cell.AdjacentMines > 0 {
-			g.drawNumber(screen, screenX, screenY, cell.AdjacentMines)
-		}
+		g.drawRevealedCell(screen, screenX, screenY, cell)
 	} else if cell.State == FLAGGED {
-		// Flagged cell - raised 3D effect like hidden
-		vector.DrawFilledRect(screen, screenX, screenY, CELL_SIZE, CELL_SIZE, color.RGBA{192, 192, 192, 255}, false)
-		vector.DrawFilledRect(screen, screenX, screenY, CELL_SIZE-1, CELL_SIZE-1, color.RGBA{255, 255, 255, 255}, false)
-		vector.DrawFilledRect(screen, screenX+1, screenY+1, CELL_SIZE-2, CELL_SIZE-2, color.RGBA{192, 192, 192, 255}, false)
-		vector.DrawFilledRect(screen, screenX+CELL_SIZE-1, screenY, 1, CELL_SIZE, color.RGBA{128, 128, 128, 255}, false)
-		vector.DrawFilledRect(screen, screenX, screenY+CELL_SIZE-1, CELL_SIZE, 1, color.RGBA{128, 128, 128, 255}, false)
-		
+		g.drawRaisedCell(screen, screenX, screenY)
 		g.drawFlag(screen, screenX, screenY)
+	}
+}
+
+func (g *Game) drawRaisedCell(screen *ebiten.Image, x, y float32) {
+	vector.DrawFilledRect(screen, x, y, CELL_SIZE, CELL_SIZE, ColorGray, false)
+	vector.DrawFilledRect(screen, x, y, CELL_SIZE-1, CELL_SIZE-1, ColorWhite, false)
+	vector.DrawFilledRect(screen, x+1, y+1, CELL_SIZE-2, CELL_SIZE-2, ColorGray, false)
+	vector.DrawFilledRect(screen, x+CELL_SIZE-1, y, 1, CELL_SIZE, ColorDarkGray, false)
+	vector.DrawFilledRect(screen, x, y+CELL_SIZE-1, CELL_SIZE, 1, ColorDarkGray, false)
+}
+
+func (g *Game) drawRevealedCell(screen *ebiten.Image, x, y float32, cell *Cell) {
+	vector.DrawFilledRect(screen, x, y, CELL_SIZE, CELL_SIZE, ColorDarkGray, false)
+	vector.DrawFilledRect(screen, x+1, y+1, CELL_SIZE-2, CELL_SIZE-2, ColorGray, false)
+	
+	if cell.IsMine {
+		g.drawMine(screen, x, y)
+	} else if cell.AdjacentMines > 0 {
+		g.drawNumber(screen, x, y, cell.AdjacentMines)
 	}
 }
 
@@ -379,51 +439,39 @@ func (g *Game) drawMine(screen *ebiten.Image, x, y float32) {
 	centerX := x + 8
 	centerY := y + 8
 	
-	// Main mine body - black circle
-	vector.DrawFilledCircle(screen, centerX, centerY, 4, color.RGBA{0, 0, 0, 255}, false)
+	// Main mine body
+	vector.DrawFilledCircle(screen, centerX, centerY, 4, ColorBlack, false)
 	
 	// 8 spikes radiating from center
-	// Vertical spike
-	vector.DrawFilledRect(screen, centerX-0.5, y+1, 1, 14, color.RGBA{0, 0, 0, 255}, false)
-	// Horizontal spike
-	vector.DrawFilledRect(screen, x+1, centerY-0.5, 14, 1, color.RGBA{0, 0, 0, 255}, false)
-	// Diagonal spikes (4 directions)
-	vector.DrawFilledRect(screen, x+2, y+2, 12, 1, color.RGBA{0, 0, 0, 255}, false)
-	vector.DrawFilledRect(screen, x+2, y+13, 12, 1, color.RGBA{0, 0, 0, 255}, false)
-	vector.DrawFilledRect(screen, x+2, y+2, 1, 12, color.RGBA{0, 0, 0, 255}, false)
-	vector.DrawFilledRect(screen, x+13, y+2, 1, 12, color.RGBA{0, 0, 0, 255}, false)
+	vector.DrawFilledRect(screen, centerX-0.5, y+1, 1, 14, ColorBlack, false)      // Vertical
+	vector.DrawFilledRect(screen, x+1, centerY-0.5, 14, 1, ColorBlack, false)     // Horizontal
+	vector.DrawFilledRect(screen, x+2, y+2, 12, 1, ColorBlack, false)             // Diagonal
+	vector.DrawFilledRect(screen, x+2, y+13, 12, 1, ColorBlack, false)            // Diagonal
+	vector.DrawFilledRect(screen, x+2, y+2, 1, 12, ColorBlack, false)             // Diagonal
+	vector.DrawFilledRect(screen, x+13, y+2, 1, 12, ColorBlack, false)            // Diagonal
 	
-	// White highlight on upper left of mine
-	vector.DrawFilledRect(screen, centerX-1, centerY-1, 2, 2, color.RGBA{255, 255, 255, 255}, false)
+	// White highlight
+	vector.DrawFilledRect(screen, centerX-1, centerY-1, 2, 2, ColorWhite, false)
 }
 
 func (g *Game) drawFlag(screen *ebiten.Image, x, y float32) {
-	// Flag pole - thin vertical line
-	vector.DrawFilledRect(screen, x+8, y+2, 1, 12, color.RGBA{0, 0, 0, 255}, false)
+	// Flag pole
+	vector.DrawFilledRect(screen, x+8, y+2, 1, 12, ColorBlack, false)
 	
-	// Flag - red triangle
-	vector.DrawFilledRect(screen, x+9, y+2, 5, 3, color.RGBA{255, 0, 0, 255}, false)
-	vector.DrawFilledRect(screen, x+9, y+5, 4, 1, color.RGBA{255, 0, 0, 255}, false)
-	vector.DrawFilledRect(screen, x+9, y+6, 3, 1, color.RGBA{255, 0, 0, 255}, false)
-	vector.DrawFilledRect(screen, x+9, y+7, 2, 1, color.RGBA{255, 0, 0, 255}, false)
-	vector.DrawFilledRect(screen, x+9, y+8, 1, 1, color.RGBA{255, 0, 0, 255}, false)
+	// Flag triangle
+	vector.DrawFilledRect(screen, x+9, y+2, 5, 3, ColorRed, false)
+	vector.DrawFilledRect(screen, x+9, y+5, 4, 1, ColorRed, false)
+	vector.DrawFilledRect(screen, x+9, y+6, 3, 1, ColorRed, false)
+	vector.DrawFilledRect(screen, x+9, y+7, 2, 1, ColorRed, false)
+	vector.DrawFilledRect(screen, x+9, y+8, 1, 1, ColorRed, false)
 }
 
 func (g *Game) drawNumber(screen *ebiten.Image, x, y float32, number int) {
-	colors := []color.RGBA{
-		{0, 0, 255, 255},     // 1 - blue
-		{0, 128, 0, 255},     // 2 - green
-		{255, 0, 0, 255},     // 3 - red
-		{0, 0, 128, 255},     // 4 - dark blue
-		{128, 0, 0, 255},     // 5 - maroon
-		{0, 128, 128, 255},   // 6 - teal
-		{0, 0, 0, 255},       // 7 - black
-		{128, 128, 128, 255}, // 8 - gray
+	if number < 1 || number > 8 {
+		return
 	}
 	
-	numberColor := colors[number-1]
-	
-	// Use text package for better centered text
+	numberColor := NumberColors[number-1]
 	numberText := fmt.Sprintf("%d", number)
 	bounds := text.BoundString(basicfont.Face7x13, numberText)
 	textX := int(x) + (CELL_SIZE-bounds.Dx())/2
@@ -441,6 +489,7 @@ func main() {
 	
 	ebiten.SetWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT)
 	ebiten.SetWindowTitle("Minesweeper")
+	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeDisabled)
 	
 	if err := ebiten.RunGame(game); err != nil {
 		log.Fatal(err)

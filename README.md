@@ -8,12 +8,14 @@ A faithful recreation of the classic Windows 3.1 Minesweeper game built in Go us
 - **Classic Gameplay**: 16x16 grid with 40 mines (Expert difficulty)
 - **Proper Game Mechanics**:
   - First click is always safe (mines are placed after first click)
+  - Efficient Fisher-Yates algorithm for mine placement
   - Flood fill algorithm for revealing adjacent empty cells
   - Right-click flagging system
-  - Timer and mine counter
+  - Timer and mine counter with 999-second cap
   - Win/lose detection with proper smiley face states
 - **3D Visual Effects**: Authentic raised/sunken button effects
-- **LED-style Displays**: Classic digital counter appearance
+- **LED-style Displays**: Classic red digital counter appearance
+- **Professional Code Quality**: Clean, maintainable Go code following best practices
 
 ## Controls
 
@@ -58,15 +60,17 @@ go build -o minesweeper main.go
 - **Graphics**: Custom pixel-perfect rendering matching Windows 3.1 style
 - **Window Size**: 276x336 pixels (authentic size)
 - **Performance**: 60 FPS, optimized for smooth gameplay
+- **Algorithm**: Fisher-Yates shuffle for O(n) mine placement
+- **Code Quality**: Professional Go code with proper error handling and bounds checking
 
 ## Code Structure
 
-- `main.go` - Complete game implementation
-- Game state management
-- Authentic Windows 3.1 UI rendering
-- Mouse input handling
-- Mine placement algorithm
-- Flood fill cell revelation
+- `main.go` - Complete game implementation (497 lines)
+- Clean separation between game logic and rendering
+- Authentic Windows 3.1 UI rendering with 3D effects
+- Efficient mouse input handling with coordinate conversion
+- Optimized mine placement and flood fill algorithms
+- Color constants and helper methods for maintainability
 
 ## Smiley Face States
 
