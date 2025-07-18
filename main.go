@@ -94,11 +94,11 @@ func NewGame() *Game {
 		firstClick: true,
 		rng:        rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
-	
+
 	for i := range game.board {
 		game.board[i] = make([]Cell, BOARD_WIDTH)
 	}
-	
+
 	return game
 }
 
@@ -113,16 +113,16 @@ func (g *Game) placeMines(avoidX, avoidY int) {
 			}
 		}
 	}
-	
+
 	// Fisher-Yates shuffle and pick first MINE_COUNT positions
 	for i := 0; i < MINE_COUNT && i < len(positions); i++ {
 		j := g.rng.Intn(len(positions)-i) + i
 		positions[i], positions[j] = positions[j], positions[i]
-		
+
 		pos := positions[i]
 		g.board[pos.Y][pos.X].IsMine = true
 	}
-	
+
 	// Calculate adjacent mine counts
 	for y := 0; y < BOARD_HEIGHT; y++ {
 		for x := 0; x < BOARD_WIDTH; x++ {
@@ -157,14 +157,14 @@ func (g *Game) revealCell(x, y int) {
 	if !g.isValidPosition(x, y) {
 		return
 	}
-	
+
 	cell := &g.board[y][x]
 	if cell.State != HIDDEN {
 		return
 	}
-	
+
 	cell.State = REVEALED
-	
+
 	if cell.IsMine {
 		g.gameState = LOST
 		// Reveal all mines when game is lost
@@ -177,7 +177,7 @@ func (g *Game) revealCell(x, y int) {
 		}
 		return
 	}
-	
+
 	// Flood fill for empty cells
 	if cell.AdjacentMines == 0 {
 		for dy := -1; dy <= 1; dy++ {
@@ -186,7 +186,7 @@ func (g *Game) revealCell(x, y int) {
 			}
 		}
 	}
-	
+
 	g.checkWin()
 }
 
@@ -194,12 +194,12 @@ func (g *Game) toggleFlag(x, y int) {
 	if !g.isValidPosition(x, y) {
 		return
 	}
-	
+
 	cell := &g.board[y][x]
 	if cell.State == REVEALED {
 		return
 	}
-	
+
 	if cell.State == HIDDEN {
 		cell.State = FLAGGED
 		g.minesLeft--
@@ -228,7 +228,7 @@ func (g *Game) resetGame() {
 			g.board[y][x] = Cell{}
 		}
 	}
-	
+
 	g.gameState = PLAYING
 	g.minesLeft = MINE_COUNT
 	g.firstClick = true
@@ -244,8 +244,8 @@ func (g *Game) screenToBoard(screenX, screenY int) (int, int) {
 func (g *Game) isClickOnSmiley(x, y int) bool {
 	smileyX := WINDOW_WIDTH/2 - SMILEY_SIZE/2
 	smileyY := 16
-	return x >= smileyX && x <= smileyX+SMILEY_SIZE && 
-	       y >= smileyY && y <= smileyY+SMILEY_SIZE
+	return x >= smileyX && x <= smileyX+SMILEY_SIZE &&
+		y >= smileyY && y <= smileyY+SMILEY_SIZE
 }
 
 func (g *Game) Update() error {
@@ -256,16 +256,16 @@ func (g *Game) Update() error {
 			g.gameTime = 999 // Cap at 999 like original
 		}
 	}
-	
+
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		x, y := ebiten.CursorPosition()
-		
+
 		// Check smiley face click
 		if g.isClickOnSmiley(x, y) {
 			g.resetGame()
 			return nil
 		}
-		
+
 		// Check board click
 		boardX, boardY := g.screenToBoard(x, y)
 		if g.isValidPosition(boardX, boardY) {
@@ -277,7 +277,7 @@ func (g *Game) Update() error {
 			g.revealCell(boardX, boardY)
 		}
 	}
-	
+
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonRight) {
 		x, y := ebiten.CursorPosition()
 		boardX, boardY := g.screenToBoard(x, y)
@@ -285,7 +285,7 @@ func (g *Game) Update() error {
 			g.toggleFlag(boardX, boardY)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -298,22 +298,22 @@ func (g *Game) Draw(screen *ebiten.Image) {
 func (g *Game) drawHeader(screen *ebiten.Image) {
 	// Main header panel
 	g.draw3DPanel(screen, 10, 10, float32(WINDOW_WIDTH-20), 40, true)
-	
+
 	// Mine counter panel
 	g.draw3DPanel(screen, 16, 16, 40, 28, false)
 	g.drawLEDDisplay(screen, 18, 18, fmt.Sprintf("%03d", g.minesLeft))
-	
+
 	// Timer panel
 	timerX := float32(WINDOW_WIDTH - 56)
 	g.draw3DPanel(screen, timerX, 16, 40, 28, false)
 	g.drawLEDDisplay(screen, timerX+2, 18, fmt.Sprintf("%03d", g.gameTime))
-	
+
 	// Smiley face button
 	smileyX := float32(WINDOW_WIDTH/2 - SMILEY_SIZE/2)
 	smileyY := float32(16)
 	g.draw3DPanel(screen, smileyX, smileyY, SMILEY_SIZE, SMILEY_SIZE, true)
 	g.drawSmileyFace(screen, smileyX+2, smileyY+2)
-	
+
 	// Board panel
 	g.draw3DPanel(screen, 10, 55, float32(WINDOW_WIDTH-20), float32(BOARD_HEIGHT*CELL_SIZE+6), false)
 }
@@ -321,7 +321,7 @@ func (g *Game) drawHeader(screen *ebiten.Image) {
 func (g *Game) draw3DPanel(screen *ebiten.Image, x, y, width, height float32, raised bool) {
 	// Background
 	vector.DrawFilledRect(screen, x, y, width, height, ColorGray, false)
-	
+
 	if raised {
 		// Raised effect (buttons)
 		vector.DrawFilledRect(screen, x, y, width-1, height-1, ColorWhite, false)
@@ -340,12 +340,12 @@ func (g *Game) draw3DPanel(screen *ebiten.Image, x, y, width, height float32, ra
 func (g *Game) drawLEDDisplay(screen *ebiten.Image, x, y float32, displayText string) {
 	// Black background for LED display
 	vector.DrawFilledRect(screen, x, y, 36, 24, ColorBlack, false)
-	
+
 	// LED-style text in red
 	bounds := text.BoundString(basicfont.Face7x13, displayText)
 	textX := int(x) + (36-bounds.Dx())/2
 	textY := int(y) + (24+bounds.Dy())/2 - 2
-	
+
 	text.Draw(screen, displayText, basicfont.Face7x13, textX, textY, ColorRed)
 }
 
@@ -353,7 +353,7 @@ func (g *Game) drawSmileyFace(screen *ebiten.Image, x, y float32) {
 	// Yellow circular face with black outline
 	vector.DrawFilledCircle(screen, x+10, y+10, 9, ColorYellow, false)
 	vector.StrokeCircle(screen, x+10, y+10, 9, 1, ColorBlack, false)
-	
+
 	if g.gameState == LOST {
 		// Dead face - X eyes and O mouth
 		g.drawXEyes(screen, x, y)
@@ -383,7 +383,7 @@ func (g *Game) drawXEyes(screen *ebiten.Image, x, y float32) {
 	vector.DrawFilledRect(screen, x+8, y+6, 1, 1, ColorBlack, false)
 	vector.DrawFilledRect(screen, x+7, y+7, 1, 1, ColorBlack, false)
 	vector.DrawFilledRect(screen, x+6, y+8, 1, 1, ColorBlack, false)
-	
+
 	// Right X eye
 	vector.DrawFilledRect(screen, x+12, y+6, 1, 1, ColorBlack, false)
 	vector.DrawFilledRect(screen, x+13, y+7, 1, 1, ColorBlack, false)
@@ -405,7 +405,7 @@ func (g *Game) drawCell(screen *ebiten.Image, x, y int) {
 	cell := &g.board[y][x]
 	screenX := float32(x*CELL_SIZE + BOARD_OFFSET_X)
 	screenY := float32(y*CELL_SIZE + BOARD_OFFSET_Y)
-	
+
 	if cell.State == HIDDEN {
 		g.drawRaisedCell(screen, screenX, screenY)
 	} else if cell.State == REVEALED {
@@ -427,7 +427,7 @@ func (g *Game) drawRaisedCell(screen *ebiten.Image, x, y float32) {
 func (g *Game) drawRevealedCell(screen *ebiten.Image, x, y float32, cell *Cell) {
 	vector.DrawFilledRect(screen, x, y, CELL_SIZE, CELL_SIZE, ColorDarkGray, false)
 	vector.DrawFilledRect(screen, x+1, y+1, CELL_SIZE-2, CELL_SIZE-2, ColorGray, false)
-	
+
 	if cell.IsMine {
 		g.drawMine(screen, x, y)
 	} else if cell.AdjacentMines > 0 {
@@ -438,18 +438,18 @@ func (g *Game) drawRevealedCell(screen *ebiten.Image, x, y float32, cell *Cell) 
 func (g *Game) drawMine(screen *ebiten.Image, x, y float32) {
 	centerX := x + 8
 	centerY := y + 8
-	
+
 	// Main mine body
 	vector.DrawFilledCircle(screen, centerX, centerY, 4, ColorBlack, false)
-	
+
 	// 8 spikes radiating from center
-	vector.DrawFilledRect(screen, centerX-0.5, y+1, 1, 14, ColorBlack, false)      // Vertical
-	vector.DrawFilledRect(screen, x+1, centerY-0.5, 14, 1, ColorBlack, false)     // Horizontal
-	vector.DrawFilledRect(screen, x+2, y+2, 12, 1, ColorBlack, false)             // Diagonal
-	vector.DrawFilledRect(screen, x+2, y+13, 12, 1, ColorBlack, false)            // Diagonal
-	vector.DrawFilledRect(screen, x+2, y+2, 1, 12, ColorBlack, false)             // Diagonal
-	vector.DrawFilledRect(screen, x+13, y+2, 1, 12, ColorBlack, false)            // Diagonal
-	
+	vector.DrawFilledRect(screen, centerX-0.5, y+1, 1, 14, ColorBlack, false) // Vertical
+	vector.DrawFilledRect(screen, x+1, centerY-0.5, 14, 1, ColorBlack, false) // Horizontal
+	vector.DrawFilledRect(screen, x+2, y+2, 12, 1, ColorBlack, false)         // Diagonal
+	vector.DrawFilledRect(screen, x+2, y+13, 12, 1, ColorBlack, false)        // Diagonal
+	vector.DrawFilledRect(screen, x+2, y+2, 1, 12, ColorBlack, false)         // Diagonal
+	vector.DrawFilledRect(screen, x+13, y+2, 1, 12, ColorBlack, false)        // Diagonal
+
 	// White highlight
 	vector.DrawFilledRect(screen, centerX-1, centerY-1, 2, 2, ColorWhite, false)
 }
@@ -457,7 +457,7 @@ func (g *Game) drawMine(screen *ebiten.Image, x, y float32) {
 func (g *Game) drawFlag(screen *ebiten.Image, x, y float32) {
 	// Flag pole
 	vector.DrawFilledRect(screen, x+8, y+2, 1, 12, ColorBlack, false)
-	
+
 	// Flag triangle
 	vector.DrawFilledRect(screen, x+9, y+2, 5, 3, ColorRed, false)
 	vector.DrawFilledRect(screen, x+9, y+5, 4, 1, ColorRed, false)
@@ -470,13 +470,13 @@ func (g *Game) drawNumber(screen *ebiten.Image, x, y float32, number int) {
 	if number < 1 || number > 8 {
 		return
 	}
-	
+
 	numberColor := NumberColors[number-1]
 	numberText := fmt.Sprintf("%d", number)
 	bounds := text.BoundString(basicfont.Face7x13, numberText)
 	textX := int(x) + (CELL_SIZE-bounds.Dx())/2
 	textY := int(y) + (CELL_SIZE+bounds.Dy())/2 - 2
-	
+
 	text.Draw(screen, numberText, basicfont.Face7x13, textX, textY, numberColor)
 }
 
@@ -486,11 +486,11 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 
 func main() {
 	game := NewGame()
-	
+
 	ebiten.SetWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT)
 	ebiten.SetWindowTitle("Minesweeper")
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeDisabled)
-	
+
 	if err := ebiten.RunGame(game); err != nil {
 		log.Fatal(err)
 	}

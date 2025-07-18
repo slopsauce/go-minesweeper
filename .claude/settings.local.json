@@ -9,7 +9,14 @@
       "WebFetch(domain:minesweepergame.com)",
       "Bash(go mod init:*)",
       "Bash(go get:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(go mod:*)",
+      "Bash(go build:*)",
+      "Bash(gh run list:*)",
+      "Bash(gh run view:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(gofmt:*)"
     ],
     "deny": []
   }

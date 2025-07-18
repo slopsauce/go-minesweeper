@@ -26,7 +26,7 @@ jobs:
     - name: Install system dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl1-mesa-dev libasound2-dev
+        sudo apt-get install -y libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl1-mesa-dev libasound2-dev libxxf86vm-dev
 
     - name: Verify dependencies
       run: go mod verify
@@ -50,17 +50,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Only build for Linux on CI - cross-compilation for Darwin/Windows is complex
           - goos: linux
             goarch: amd64
-            runs-on: ubuntu-latest
-          - goos: windows
-            goarch: amd64
-            runs-on: ubuntu-latest
-          - goos: darwin
-            goarch: amd64
-            runs-on: ubuntu-latest
-          - goos: darwin
-            goarch: arm64
             runs-on: ubuntu-latest
           - goos: linux
             goarch: arm64
@@ -81,7 +73,7 @@ jobs:
       if: matrix.goos == 'linux'
       run: |
         sudo apt-get update
-        sudo apt-get install -y libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl1-mesa-dev libasound2-dev
+        sudo apt-get install -y libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl1-mesa-dev libasound2-dev libxxf86vm-dev
 
     - name: Verify dependencies
       run: go mod verify

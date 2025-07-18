@@ -24,35 +24,11 @@ jobs:
     - name: Verify dependencies
       run: go mod verify
     
-    # Install system dependencies for cross-compilation
+    # Install system dependencies for Linux build
     - name: Install system dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl1-mesa-dev libasound2-dev
-        # Install MinGW for Windows cross-compilation
-        sudo apt-get install -y gcc-mingw-w64-x86-64
-    
-    - name: Build for Windows (amd64)
-      env:
-        GOOS: windows
-        GOARCH: amd64
-        CGO_ENABLED: 1
-        CC: x86_64-w64-mingw32-gcc
-      run: go build -v -ldflags="-s -w" -o minesweeper-windows-amd64.exe .
-    
-    - name: Build for macOS (Intel) 
-      env:
-        GOOS: darwin
-        GOARCH: amd64
-        CGO_ENABLED: 1
-      run: go build -v -ldflags="-s -w" -o minesweeper-macos-amd64 .
-    
-    - name: Build for macOS (Apple Silicon)
-      env:
-        GOOS: darwin
-        GOARCH: arm64
-        CGO_ENABLED: 1
-      run: go build -v -ldflags="-s -w" -o minesweeper-macos-arm64 .
+        sudo apt-get install -y libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl1-mesa-dev libasound2-dev libxxf86vm-dev
     
     - name: Build for Linux (amd64)
       env:
@@ -74,9 +50,6 @@ jobs:
         Authentic Windows 3.1 Minesweeper recreation built in Go with Ebiten.
         
         ### Download & Play
-        - **Windows**: \`minesweeper-windows-amd64.exe\`
-        - **macOS (Intel)**: \`minesweeper-macos-amd64\` 
-        - **macOS (Apple Silicon)**: \`minesweeper-macos-arm64\`
         - **Linux**: \`minesweeper-linux-amd64\`
         
         ### Controls
@@ -93,7 +66,4 @@ jobs:
         - Professional Go code following best practices
         
         🤖 Generated with [Claude Code](https://claude.ai/code)" \
-          minesweeper-windows-amd64.exe \
-          minesweeper-macos-amd64 \
-          minesweeper-macos-arm64 \
           minesweeper-linux-amd64
