@@ -2,8 +2,6 @@
 
 A faithful recreation of the classic Windows 3.1 Minesweeper game built in Go using the Ebiten game engine.
 
-![Minesweeper Screenshot](https://via.placeholder.com/276x336/c0c0c0/000000?text=Minesweeper)
-
 ## Features
 
 - **Authentic Windows 3.1 Graphics**: Pixel-perfect recreation of the original game's appearance
