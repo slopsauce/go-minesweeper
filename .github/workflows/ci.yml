@@ -19,7 +19,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
       with:
-        go-version: '1.21'
+        go-version: '1.24'
         check-latest: true
 
     # Install system dependencies for Ebiten
@@ -69,7 +69,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
       with:
-        go-version: '1.21'
+        go-version: '1.24'
         check-latest: true
 
     # Install system dependencies for Linux builds
@@ -99,7 +99,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
       with:
-        go-version: '1.21'
+        go-version: '1.24'
         check-latest: true
     
     # Install dependencies so linter can find packages
