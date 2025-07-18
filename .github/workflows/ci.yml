@@ -50,14 +50,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Linux builds on Ubuntu
+          # Linux amd64 only - ARM64 cross-compilation is complex
           - goos: linux
             goarch: amd64
             runs-on: ubuntu-latest
-          - goos: linux
-            goarch: arm64
-            runs-on: ubuntu-latest
-          # macOS builds on macOS runners
+          # macOS builds on native runners
           - goos: darwin
             goarch: amd64
             runs-on: macos-13  # Intel
@@ -104,6 +101,15 @@ jobs:
       with:
         go-version: '1.21'
         check-latest: true
+    
+    # Install dependencies so linter can find packages
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl1-mesa-dev libasound2-dev libxxf86vm-dev
+    
+    - name: Download dependencies
+      run: go mod download
     
     - name: golangci-lint
       uses: golangci/golangci-lint-action@aaa42aa0628b4ae2578232a66b541047968fac86 # v6.1.0
