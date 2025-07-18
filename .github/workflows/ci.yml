@@ -50,13 +50,20 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Only build for Linux on CI - cross-compilation for Darwin/Windows is complex
+          # Linux builds on Ubuntu
           - goos: linux
             goarch: amd64
             runs-on: ubuntu-latest
           - goos: linux
             goarch: arm64
             runs-on: ubuntu-latest
+          # macOS builds on macOS runners
+          - goos: darwin
+            goarch: amd64
+            runs-on: macos-13  # Intel
+          - goos: darwin
+            goarch: arm64
+            runs-on: macos-latest  # Apple Silicon
     runs-on: ${{ matrix.runs-on }}
     steps:
     - name: Checkout code
@@ -69,7 +76,7 @@ jobs:
         check-latest: true
 
     # Install system dependencies for Linux builds
-    - name: Install system dependencies
+    - name: Install system dependencies (Linux)
       if: matrix.goos == 'linux'
       run: |
         sudo apt-get update
@@ -84,12 +91,7 @@ jobs:
         GOARCH: ${{ matrix.goarch }}
         # Ebiten requires CGO for graphics
         CGO_ENABLED: 1
-      run: |
-        if [ "${{ matrix.goos }}" = "windows" ]; then
-          go build -v -ldflags="-s -w" -o minesweeper-${{ matrix.goos }}-${{ matrix.goarch }}.exe .
-        else
-          go build -v -ldflags="-s -w" -o minesweeper-${{ matrix.goos }}-${{ matrix.goarch }} .
-        fi
+      run: go build -v -ldflags="-s -w" -o minesweeper-${{ matrix.goos }}-${{ matrix.goarch }} .
 
   lint:
     runs-on: ubuntu-latest
