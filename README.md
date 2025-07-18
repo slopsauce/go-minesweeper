@@ -1,0 +1,114 @@
+# Go Minesweeper
+
+A faithful recreation of the classic Windows 3.1 Minesweeper game built in Go using the Ebiten game engine.
+
+![Minesweeper Screenshot](https://via.placeholder.com/276x336/c0c0c0/000000?text=Minesweeper)
+
+## Features
+
+- **Authentic Windows 3.1 Graphics**: Pixel-perfect recreation of the original game's appearance
+- **Classic Gameplay**: 16x16 grid with 40 mines (Expert difficulty)
+- **Proper Game Mechanics**:
+  - First click is always safe (mines are placed after first click)
+  - Flood fill algorithm for revealing adjacent empty cells
+  - Right-click flagging system
+  - Timer and mine counter
+  - Win/lose detection with proper smiley face states
+- **3D Visual Effects**: Authentic raised/sunken button effects
+- **LED-style Displays**: Classic digital counter appearance
+
+## Controls
+
+- **Left Click**: Reveal cell
+- **Right Click**: Flag/unflag cell
+- **Smiley Face Button**: Reset game
+
+## Installation
+
+### Prerequisites
+
+- Go 1.19 or later
+- Git
+
+### Clone and Run
+
+```bash
+git clone https://github.com/slopsauce/go-minesweeper.git
+cd go-minesweeper
+go run main.go
+```
+
+### Build Executable
+
+```bash
+go build -o minesweeper main.go
+./minesweeper
+```
+
+## Game Rules
+
+1. **Objective**: Clear all cells that don't contain mines
+2. **Numbers**: Indicate how many mines are adjacent to that cell
+3. **Flags**: Right-click to flag suspected mines
+4. **First Click**: Always safe - mines are placed after your first move
+5. **Winning**: Reveal all non-mine cells
+6. **Losing**: Click on a mine
+
+## Technical Details
+
+- **Engine**: [Ebiten](https://ebiten.org/) - A dead simple 2D game library for Go
+- **Graphics**: Custom pixel-perfect rendering matching Windows 3.1 style
+- **Window Size**: 276x336 pixels (authentic size)
+- **Performance**: 60 FPS, optimized for smooth gameplay
+
+## Code Structure
+
+- `main.go` - Complete game implementation
+- Game state management
+- Authentic Windows 3.1 UI rendering
+- Mouse input handling
+- Mine placement algorithm
+- Flood fill cell revelation
+
+## Smiley Face States
+
+- **😊 Normal**: Default playing state
+- **😵 Dead**: Game over (hit a mine)
+- **😎 Cool**: Victory (all mines found)
+
+## Dependencies
+
+```go
+github.com/hajimehoshi/ebiten/v2
+golang.org/x/image/font/basicfont
+```
+
+## Screenshots
+
+The game faithfully recreates the Windows 3.1 Minesweeper experience:
+
+- Classic gray 3D interface
+- Authentic mine graphics with spikes and highlight
+- Proper flag triangular design
+- LED-style red digital displays
+- Pixel-perfect smiley face expressions
+
+## Contributing
+
+Feel free to submit issues and pull requests! This project aims to maintain authenticity to the original Windows 3.1 Minesweeper while being written in idiomatic Go.
+
+## License
+
+MIT License - see LICENSE file for details.
+
+## Acknowledgments
+
+- Original Minesweeper game by Microsoft
+- Ebiten game engine by Hajime Hoshi
+- Windows 3.1 design inspiration
+
+---
+
+🤖 **Generated with [Claude Code](https://claude.ai/code)**
+
+**Co-Authored-By:** Claude <noreply@anthropic.com>

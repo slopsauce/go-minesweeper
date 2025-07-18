@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git clone:*)",
+      "Bash(make:*)",
+      "Bash(git init:*)",
+      "Bash(git submodule add:*)",
+      "Bash(git add:*)",
+      "WebFetch(domain:minesweepergame.com)",
+      "Bash(go mod init:*)",
+      "Bash(go get:*)"
+    ],
+    "deny": []
+  }
+}
