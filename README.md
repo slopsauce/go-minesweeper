@@ -58,15 +58,6 @@ go build -o minesweeper main.go
 ./minesweeper
 ```
 
-### Option 3: Build for Web
-
-Build the WebAssembly version locally:
-
-```bash
-./build-web.sh
-cd docs && python3 -m http.server 8080
-# Open http://localhost:8080 in your browser
-```
 
 ## Game Rules
 

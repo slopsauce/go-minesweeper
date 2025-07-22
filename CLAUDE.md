@@ -56,12 +56,8 @@ The web deployment phase added:
 ## Key Commands
 
 ```bash
-# Build for web locally
-./build-web.sh
-
-# Test locally
-cd docs && python3 -m http.server 8080
-
 # Deploy to GitHub Pages (automatic via push to main)
 git push origin main
+
+# The game is automatically built and deployed via GitHub Actions
 ```
