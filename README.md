@@ -2,6 +2,12 @@
 
 A faithful recreation of the classic Windows 3.1 Minesweeper game built in Go using the Ebiten game engine.
 
+## Play Online
+
+🎮 **[Play Minesweeper in your browser!](https://slopsauce.github.io/go-minesweeper/)**
+
+No download required - the game runs directly in your web browser using WebAssembly.
+
 ## Features
 
 - **Authentic Windows 3.1 Graphics**: Pixel-perfect recreation of the original game's appearance
@@ -16,6 +22,7 @@ A faithful recreation of the classic Windows 3.1 Minesweeper game built in Go us
 - **3D Visual Effects**: Authentic raised/sunken button effects
 - **LED-style Displays**: Classic red digital counter appearance
 - **Professional Code Quality**: Clean, maintainable Go code following best practices
+- **Web Support**: Playable in browser via WebAssembly
 
 ## Controls
 
@@ -51,6 +58,16 @@ go build -o minesweeper main.go
 ./minesweeper
 ```
 
+### Option 3: Build for Web
+
+Build the WebAssembly version locally:
+
+```bash
+./build-web.sh
+cd docs && python3 -m http.server 8080
+# Open http://localhost:8080 in your browser
+```
+
 ## Game Rules
 
 1. **Objective**: Clear all cells that don't contain mines
@@ -68,6 +85,8 @@ go build -o minesweeper main.go
 - **Performance**: 60 FPS, optimized for smooth gameplay
 - **Algorithm**: Fisher-Yates shuffle for O(n) mine placement
 - **Code Quality**: Professional Go code with proper error handling and bounds checking
+- **Web Support**: Compiled to WebAssembly for browser deployment
+- **CI/CD**: GitHub Actions automatically builds and deploys to GitHub Pages
 
 ## Code Structure
 
