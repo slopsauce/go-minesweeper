@@ -315,7 +315,7 @@ func (g *Game) drawHeader(screen *ebiten.Image) {
 	g.drawSmileyFace(screen, smileyX+2, smileyY+2)
 
 	// Board panel
-	g.draw3DPanel(screen, 10, 55, float32(WINDOW_WIDTH-20), float32(BOARD_HEIGHT*CELL_SIZE+6), false)
+	g.draw3DPanel(screen, 10, 55, float32(BOARD_WIDTH*CELL_SIZE+6), float32(BOARD_HEIGHT*CELL_SIZE+6), false)
 }
 
 func (g *Game) draw3DPanel(screen *ebiten.Image, x, y, width, height float32, raised bool) {
