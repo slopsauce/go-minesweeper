@@ -64,3 +64,6 @@ coverage.html
 
 # Air (live reload) temporary files
 tmp/
+
+# WebAssembly build artifacts (local development)
+minesweeper.wasm
