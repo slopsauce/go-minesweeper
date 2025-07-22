@@ -1,0 +1,40 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Build WebAssembly
+        run: |
+          GOOS=js GOARCH=wasm go build -o docs/minesweeper.wasm .
+          cp "$(go env GOROOT)/lib/wasm/wasm_exec.js" docs/
+          
+      - name: Verify build
+        run: |
+          ls -la docs/
+          echo "Build complete!"
+
+      - name: Commit and push if changed
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add docs/minesweeper.wasm docs/wasm_exec.js
+          git diff --staged --quiet || (git commit -m "Update WebAssembly build [skip ci]" && git push)
