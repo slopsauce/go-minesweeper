@@ -1,10 +1,10 @@
 module minesweeper
 
-go 1.24.5
+go 1.25.0
 
 require (
 	github.com/hajimehoshi/ebiten/v2 v2.8.8
-	golang.org/x/image v0.29.0
+	golang.org/x/image v0.38.0
 )
 
 require (
